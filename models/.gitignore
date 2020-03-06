@@ -1,0 +1,3 @@
+# Ignores everything except .gitignore
+*
+!.gitignore
