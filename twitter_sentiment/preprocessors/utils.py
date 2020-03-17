@@ -1,7 +1,8 @@
 import lzma
 import json
+from typing import Generator
 
-def read_jsonlines_lzma(filepath):
+def read_jsonlines_lzma(filepath: str) -> Generator[dict, None, None]:
     try:
         with lzma.LZMAFile(filepath, 'r') as fin:
             for line in fin:
