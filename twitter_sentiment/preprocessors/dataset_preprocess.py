@@ -1,9 +1,10 @@
 from typing import Generator
 import json
 import lzma
+import re
 import unicodedata
 import joblib
-import nltk
+from tqdm import tqdm
 from twitter_sentiment.preprocessors import SPECIAL_TOKENS
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 
@@ -38,7 +39,7 @@ def remove_duplicates(tweets: dict) -> Generator[dict, None, None]:
 
     for tweet in tweets:
         if 'id' not in tweet.keys():
-            raise RuntimeException("Missing ID.")
+            raise RuntimeError("Missing ID.")
 
         if tweet["id"] in seen_tweet_ids:
             continue
@@ -47,20 +48,15 @@ def remove_duplicates(tweets: dict) -> Generator[dict, None, None]:
         yield tweet
 
 def text_format(tweets: dict) -> Generator[dict, None, None]:
-    tokenizer = nltk.tokenize.casual.TweetTokenizer(preserve_case=True, reduce_len=True, strip_handles=False)
-
     for tweet in tweets:
         tweet['text'] = unicodedata.normalize('NFKC', tweet['text'])
         text = tweet["text"]
-        tokens = tokenizer.tokenize(text)
 
-        # Lower case and filter tokens
-        tokens = [t.lower() for t in tokens]
-        tokens = [SPECIAL_TOKENS['mention'] if t[0] == '@' else t for t in tokens]
-        tokens = [SPECIAL_TOKENS['link'] if t.startswith("https://") else t for t in tokens]
-        tokens = [SPECIAL_TOKENS['link'] if t.startswith("http://") else t for t in tokens]
+        treated_text = text.lower() # lowercase all
+        treated_text = re.sub(r'\B@\w+', SPECIAL_TOKENS['mention'], treated_text)
+        treated_text = re.sub(r'(?:(?:https?):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
+                              SPECIAL_TOKENS['link'], treated_text)
 
-        treated_text = " ".join(tokens)
         tweet["treated_text"] = treated_text
         yield tweet
 
@@ -93,7 +89,7 @@ def _serial_dataset_preprocess(all_filepaths, output_filepath, lang):
 
     with lzma.LZMAFile(output_filepath, mode="wb", format=lzma.FORMAT_XZ) as fout:
         for filename in all_filepaths:
-            for tweet in dataset_preprocess(filename, lang):
+            for tweet in tqdm(dataset_preprocess(filename, lang)):
                 fout.write(json.dumps(tweet, separators=(',', ':')).encode('utf-8'))
                 fout.write("\n".encode("utf-8"))
 
@@ -102,14 +98,14 @@ def _parallel_dataset_preprocess(all_filepaths, output_filepath, lang):
     # FIXME: check if this breaks deduplication because it has state
 
     def pickable_dataset_preprocess(*args, **kwargs):
-        return [tweet for tweet in dataset_preprocess(*args, **kwargs)]
+        return list(dataset_preprocess(*args, **kwargs))
 
     with joblib.Parallel(verbose=60, n_jobs=-1) as parallel:
 
         tweet_batch = parallel(joblib.delayed(pickable_dataset_preprocess)(filename, lang) for filename in all_filepaths)
         with lzma.LZMAFile(output_filepath, mode="w", format=lzma.FORMAT_XZ) as fout:
             for tweets in tweet_batch:
-                for tweet in tweets:
+                for tweet in tqdm(tweets):
                     fout.write(json.dumps(tweet, separators=(',', ':')).encode('utf-8'))
                     fout.write("\n".encode("utf-8"))
 
