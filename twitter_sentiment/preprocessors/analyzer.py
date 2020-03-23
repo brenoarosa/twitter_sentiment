@@ -2,7 +2,7 @@ import nltk
 from operator import methodcaller
 from nltk.corpus import stopwords
 
-class TwitterAnalyzer(object):
+class TwitterTokenizer(object):
     """
     Custom analyzer to be applied to Scikit learn CountVectorizer.
     """

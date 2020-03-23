@@ -1,5 +1,9 @@
 from .utils import read_jsonlines_lzma
-from .formatter import tweet_format
+
+SPECIAL_TOKENS = {
+    "mention": "<MENTION>",
+    "link": "<LINK>",
+}
 
 CATEGORIES = ["NEGATIVE", "NEUTRAL", "POSITIVE", "UNDEFINED"]
 

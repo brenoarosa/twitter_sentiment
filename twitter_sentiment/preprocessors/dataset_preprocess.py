@@ -1,7 +1,10 @@
 from typing import Generator
 import json
 import lzma
+import unicodedata
 import joblib
+import nltk
+from twitter_sentiment.preprocessors import SPECIAL_TOKENS
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 
 def get_original_posts(tweets: dict) -> Generator[dict, None, None]:
@@ -43,6 +46,24 @@ def remove_duplicates(tweets: dict) -> Generator[dict, None, None]:
         seen_tweet_ids.add(tweet["id"])
         yield tweet
 
+def text_format(tweets: dict) -> Generator[dict, None, None]:
+    tokenizer = nltk.tokenize.casual.TweetTokenizer(preserve_case=True, reduce_len=True, strip_handles=False)
+
+    for tweet in tweets:
+        tweet['text'] = unicodedata.normalize('NFKC', tweet['text'])
+        text = tweet["text"]
+        tokens = tokenizer.tokenize(text)
+
+        # Lower case and filter tokens
+        tokens = [t.lower() for t in tokens]
+        tokens = [SPECIAL_TOKENS['mention'] if t[0] == '@' else t for t in tokens]
+        tokens = [SPECIAL_TOKENS['link'] if t.startswith("https://") else t for t in tokens]
+        tokens = [SPECIAL_TOKENS['link'] if t.startswith("http://") else t for t in tokens]
+
+        treated_text = " ".join(tokens)
+        tweet["treated_text"] = treated_text
+        yield tweet
+
 def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[str, None, None]:
     """
     Get text from tweets given filepath.
@@ -64,6 +85,7 @@ def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[str, None, 
     if lang:
         tweets = filter_lang(tweets, lang)
     tweets = remove_duplicates(tweets)
+    tweets = text_format(tweets)
     yield from tweets
 
 
