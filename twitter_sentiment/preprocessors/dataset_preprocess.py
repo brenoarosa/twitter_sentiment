@@ -60,7 +60,7 @@ def text_format(tweets: dict) -> Generator[dict, None, None]:
         tweet["treated_text"] = treated_text
         yield tweet
 
-def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[str, None, None]:
+def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[dict, None, None]:
     """
     Get text from tweets given filepath.
     Uses original tweets (no retweets or quotes), filtered by language if available.
