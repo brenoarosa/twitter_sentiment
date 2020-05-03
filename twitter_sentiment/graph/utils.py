@@ -24,8 +24,3 @@ def load_graph(filepath: str) -> Graph:
 def filter_scc(g: Graph) -> Graph:
     g = GraphView(g, vfilt=label_largest_component(g, directed=True))
     return Graph(g, prune=True)
-
-def write_edge_list(g: Graph, filepath: str) -> None:
-    with open(filepath, 'w') as fout:
-        for edge in g.edges():
-            fout.write(f"{int(edge.source())} {int(edge.target())}\n")
