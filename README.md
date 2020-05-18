@@ -22,3 +22,7 @@ python -m twitter_sentiment.graph.stats data/output/amazonia-edgelist.csv -o dat
 
 
 ## Graph Classification
+Get graph embeddings:
+```sh
+python -m twitter_sentiment.graph.embeddings data/output/amazonia-edgelist.csv -o data/output/amazonia-graph-embeddings.emb
+```

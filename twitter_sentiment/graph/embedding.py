@@ -1,6 +1,7 @@
 import os
 import tempfile
 import subprocess
+import shutil
 from graph_tool import Graph
 from twitter_sentiment.utils import get_logger
 from twitter_sentiment.graph.utils import load_graph, filter_scc
@@ -8,14 +9,15 @@ from twitter_sentiment.graph.utils import load_graph, filter_scc
 
 logger = get_logger()
 
-def graph_embedding(g: Graph, algorithm: str, prune_scc: bool = True) -> None:
+def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool = True) -> None:
     if prune_scc:
         g = filter_scc(g)
 
     if algorithm == "node2vec":
-        node2vec(g)
+        embedding_filepath = node2vec(g)
     else:
         raise ValueError("Invalid embedding algorithm")
+    shutil.move(embedding_filepath, output_path)
 
 def node2vec(g: Graph):
     edge_list_fd, edge_list_filepath = tempfile.mkstemp()
@@ -30,15 +32,16 @@ def node2vec(g: Graph):
     logger.info("Running [%s]", " ".join(cmd))
     logger.info("Writing embedding file to [%s]", embedding_filepath)
     subprocess.run(cmd, check=True)
+    return embedding_filepath
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Path to edge list file", type=str)
-    #parser.add_argument("-o", "--output", help="Path to output file", type=str, required=True)
+    parser.add_argument("-o", "--output", help="Path to output file", type=str, required=True)
     args = parser.parse_args()
 
     logger.info("Loading graph [%s]", args.input)
     g = load_graph(args.input)
-    graph_embedding(g, "node2vec")
+    graph_embedding(g, "node2vec", output_path=args.output)
