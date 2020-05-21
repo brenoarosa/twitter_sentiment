@@ -95,17 +95,25 @@ def _serial_dataset_preprocess(all_filepaths, output_filepath, lang):
 
 
 def _parallel_dataset_preprocess(all_filepaths, output_filepath, lang):
-    # FIXME: check if this breaks deduplication because it has state
-
     def pickable_dataset_preprocess(*args, **kwargs):
         return list(dataset_preprocess(*args, **kwargs))
+
+    def deduplicate_tweets(tweets):
+        seen_tweet_ids = set()
+
+        for tweet in tweets:
+            if tweet["id"] not in seen_tweet_ids:
+                seen_tweet_ids.add(tweet["id"])
+                yield tweet
 
     with joblib.Parallel(verbose=60, n_jobs=-1) as parallel:
 
         tweet_batch = parallel(joblib.delayed(pickable_dataset_preprocess)(filename, lang) for filename in all_filepaths)
+
         with lzma.LZMAFile(output_filepath, mode="w", format=lzma.FORMAT_XZ) as fout:
             for tweets in tweet_batch:
-                for tweet in tqdm(tweets):
+                tweets = deduplicate_tweets(tweets)
+                for tweet in tweets:
                     fout.write(json.dumps(tweet, separators=(',', ':')).encode('utf-8'))
                     fout.write("\n".encode("utf-8"))
 
@@ -116,4 +124,4 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", help="Path to output file", type=str, required=True)
     parser.add_argument("-l", "--lang", help="Language", type=str, default="pt")
     args = parser.parse_args()
-    _serial_dataset_preprocess(args.input, args.output, args.lang)
+    _parallel_dataset_preprocess(args.input, args.output, args.lang)
