@@ -5,37 +5,29 @@ SPECIAL_TOKENS = {
     "link": "<LINK>",
 }
 
-CATEGORIES = ["NEGATIVE", "NEUTRAL", "POSITIVE", "UNDEFINED"]
+POSITIVE_CLASS = "POSITIVE"
+NEGATIVE_CLASS = "NEGATIVE"
+NEUTRAL_CLASS = "NEUTRAL"
+UNDEFINED_CLASS = "UNDEFINED"
+CATEGORIES = [POSITIVE_CLASS, NEGATIVE_CLASS, NEUTRAL_CLASS, UNDEFINED_CLASS]
 
-TAGS = {
-    "POSITIVE": [
-        ":-)",
-        ":)",
-        ":D",
-        "=)",
-    ],
-    "NEGATIVE": [
-        ":-(",
-        ":(",
-        "=(",
-    ],
-    "EMOJI_POSITIVE": [
-        "😂",
-        "❤",
-        "😍",
-        "💚",
-        "💙",
-        "💛",
-        "💕",
-        "😘",
-        "♥",
-        "😊",
-    ],
-    "EMOJI_NEGATIVE": [
-        "😭",
-        "😒",
-        "😢",
-        "😔",
-        "😪",
-    ]
-}
+POSITIVE_TOKENS = [
+    "😂",
+    "❤",
+    "😍",
+    "💚",
+    "💙",
+    "💛",
+    "💕",
+    "😘",
+    "♥",
+    "😊",
+]
+
+NEGATIVE_TOKENS = [
+    "😭",
+    "😒",
+    "😢",
+    "😔",
+    "😪",
+]

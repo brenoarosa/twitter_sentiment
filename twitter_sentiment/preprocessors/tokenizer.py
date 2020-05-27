@@ -3,11 +3,16 @@ import nltk
 from nltk.corpus import stopwords
 
 
-def tokenize(tweets: dict, lang: str = "pt", reduce_len: bool = True,
+def tokenize(tweets: dict, lang: str = None, reduce_len: bool = True,
              remove_single: bool = False, remove_stopwords: bool = False) -> Generator[dict, None, None]:
-    lang_map = {"pt": "portuguese", "en": "english"}
-    tokenizer = nltk.tokenize.casual.TweetTokenizer(reduce_len=reduce_len)
-    stop = set(stopwords.words(lang_map[lang]))
+
+    if remove_stopwords and (not lang):
+        raise RuntimeError("Missing language parameter")
+
+    if lang:
+        lang_map = {"pt": "portuguese", "en": "english"}
+        tokenizer = nltk.tokenize.casual.TweetTokenizer(reduce_len=reduce_len)
+        stop = set(stopwords.words(lang_map[lang]))
 
     for tweet in tweets:
         text = tweet["treated_text"]
