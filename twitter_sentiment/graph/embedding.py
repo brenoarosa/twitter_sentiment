@@ -1,7 +1,9 @@
 import os
 import tempfile
 import subprocess
-import shutil
+from collections import namedtuple
+import joblib
+import pandas as pd
 from graph_tool import Graph
 from twitter_sentiment.utils import get_logger
 from twitter_sentiment.graph.utils import load_graph, filter_scc
@@ -9,17 +11,20 @@ from twitter_sentiment.graph.utils import load_graph, filter_scc
 
 logger = get_logger()
 
-def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool = True) -> None:
+GraphEmbedding = namedtuple('GraphEmbedding', ["idx2user", "user2idx", "weights"])
+
+def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool = True) -> dict:
     if prune_scc:
         g = filter_scc(g)
 
     if algorithm == "node2vec":
-        embedding_filepath = node2vec(g)
+        embedding = node2vec(g)
     else:
         raise ValueError("Invalid embedding algorithm")
-    shutil.move(embedding_filepath, output_path)
 
-def node2vec(g: Graph):
+    joblib.dump(embedding, output_path)
+
+def node2vec(g: Graph) -> dict:
     edge_list_fd, edge_list_filepath = tempfile.mkstemp()
     logger.info("Writing node2vec edgelist to [%s]", edge_list_filepath)
     with os.fdopen(edge_list_fd, 'w') as edgelist:
@@ -32,7 +37,17 @@ def node2vec(g: Graph):
     logger.info("Running [%s]", " ".join(cmd))
     logger.info("Writing embedding file to [%s]", embedding_filepath)
     subprocess.run(cmd, check=True)
-    return embedding_filepath
+
+    names = ["user_id"] + [f"emb_{i}" for i in range(128)]
+    df = pd.read_csv(embedding_filepath, sep=" ", header=None, names=names, skiprows=1)
+
+    weights = df.drop(columns="user_id").values
+
+    idx2user = df["user_id"].to_dict()
+    user2idx = {v: k for k, v in idx2user.items()}
+
+    emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
+    return emb
 
 
 if __name__ == "__main__":
