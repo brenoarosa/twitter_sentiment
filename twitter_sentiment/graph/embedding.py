@@ -34,7 +34,7 @@ def node2vec(g: Graph) -> GraphEmbedding:
 
     _, embedding_filepath = tempfile.mkstemp()
 
-    cmd = [os.getenv("NODE2VEC_PATH"), f"-i:{edge_list_filepath}", f"-o:{embedding_filepath}", "-d:128", "-l:80", "-r:10", "-k:10", "-e:1", "-p:1", "-q:1", "-v"]
+    cmd = [os.environ["NODE2VEC_PATH"], f"-i:{edge_list_filepath}", f"-o:{embedding_filepath}", "-d:128", "-l:80", "-r:10", "-k:10", "-e:1", "-p:1", "-q:1", "-v"]
     logger.info("Running [%s]", " ".join(cmd))
     logger.info("Writing embedding file to [%s]", embedding_filepath)
     subprocess.run(cmd, check=True)
