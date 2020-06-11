@@ -13,7 +13,7 @@ logger = get_logger()
 
 GraphEmbedding = namedtuple('GraphEmbedding', ["idx2user", "user2idx", "weights"])
 
-def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool = True) -> dict:
+def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool = True) -> GraphEmbedding:
     if prune_scc:
         g = filter_scc(g)
 
@@ -23,8 +23,9 @@ def graph_embedding(g: Graph, algorithm: str, output_path: str, prune_scc: bool 
         raise ValueError("Invalid embedding algorithm")
 
     joblib.dump(embedding, output_path)
+    return embedding
 
-def node2vec(g: Graph) -> dict:
+def node2vec(g: Graph) -> GraphEmbedding:
     edge_list_fd, edge_list_filepath = tempfile.mkstemp()
     logger.info("Writing node2vec edgelist to [%s]", edge_list_filepath)
     with os.fdopen(edge_list_fd, 'w') as edgelist:
