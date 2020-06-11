@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Iterable
 import json
 import lzma
 import re
@@ -8,7 +8,7 @@ from tqdm import tqdm
 from twitter_sentiment.preprocessors import SPECIAL_TOKENS
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 
-def get_original_posts(tweets: dict) -> Generator[dict, None, None]:
+def get_original_posts(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         user_field = "user_info"
         text_field = "text"
@@ -29,12 +29,12 @@ def get_original_posts(tweets: dict) -> Generator[dict, None, None]:
         }
         yield simple_tweet
 
-def filter_lang(tweets: dict, lang: str) -> Generator[dict, None, None]:
+def filter_lang(tweets: Iterable[dict], lang: str) -> Iterable[dict]:
     for tweet in tweets:
         if tweet.get('lang', '') == lang:
             yield tweet
 
-def remove_duplicates(tweets: dict) -> Generator[dict, None, None]:
+def remove_duplicates(tweets: Iterable[dict]) -> Iterable[dict]:
     seen_tweet_ids = set()
 
     for tweet in tweets:
@@ -47,7 +47,7 @@ def remove_duplicates(tweets: dict) -> Generator[dict, None, None]:
         seen_tweet_ids.add(tweet["id"])
         yield tweet
 
-def text_format(tweets: dict) -> Generator[dict, None, None]:
+def text_format(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         tweet['text'] = unicodedata.normalize('NFKC', tweet['text'])
         text = tweet["text"]
@@ -60,7 +60,7 @@ def text_format(tweets: dict) -> Generator[dict, None, None]:
         tweet["treated_text"] = treated_text
         yield tweet
 
-def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[dict, None, None]:
+def dataset_preprocess(filepath: str, lang: str = 'pt') -> Iterable[dict]:
     """
     Get text from tweets given filepath.
     Uses original tweets (no retweets or quotes), filtered by language if available.
@@ -85,7 +85,7 @@ def dataset_preprocess(filepath: str, lang: str = 'pt') -> Generator[dict, None,
     yield from tweets
 
 
-def _serial_dataset_preprocess(all_filepaths, output_filepath, lang):
+def _serial_dataset_preprocess(all_filepaths: Iterable[str], output_filepath: str, lang: str):
 
     with lzma.LZMAFile(output_filepath, mode="wb", format=lzma.FORMAT_XZ) as fout:
         for filename in all_filepaths:
@@ -94,7 +94,7 @@ def _serial_dataset_preprocess(all_filepaths, output_filepath, lang):
                 fout.write("\n".encode("utf-8"))
 
 
-def _parallel_dataset_preprocess(all_filepaths, output_filepath, lang):
+def _parallel_dataset_preprocess(all_filepaths: Iterable[str], output_filepath: str, lang: str):
     def pickable_dataset_preprocess(*args, **kwargs):
         return list(dataset_preprocess(*args, **kwargs))
 

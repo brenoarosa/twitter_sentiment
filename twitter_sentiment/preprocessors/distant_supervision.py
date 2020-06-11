@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Iterable
 import json
 import lzma
 import joblib
@@ -9,7 +9,7 @@ from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 from twitter_sentiment.preprocessors.dataset_preprocess import filter_lang
 from twitter_sentiment.preprocessors.tokenizer import tokenize
 
-def tag_sentiment(tweets: dict) -> Generator[dict, None, None]:
+def tag_sentiment(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         tokens = tweet["tokenized_treated_text"]
         tags = set()
@@ -24,7 +24,7 @@ def tag_sentiment(tweets: dict) -> Generator[dict, None, None]:
             tweet["distant_supervision_tags"] = list(tags)
             yield tweet
 
-def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Generator[dict, None, None]:
+def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Iterable[dict]:
     """
     Get text from tweets given filepath.
     Uses original tweets (no retweets or quotes), filtered by language if available.
@@ -51,7 +51,7 @@ def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Generator[di
     yield from tweets
 
 
-def _serial_distant_supervision(all_filepaths, output_filepath, lang):
+def _serial_distant_supervision(all_filepaths: Iterable[str], output_filepath: str, lang: str):
 
     with lzma.LZMAFile(output_filepath, mode="wb", format=lzma.FORMAT_XZ) as fout:
         for filename in all_filepaths:

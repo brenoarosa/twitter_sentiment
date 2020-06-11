@@ -1,10 +1,10 @@
-from typing import Generator
+from typing import Iterable
 import nltk
 from nltk.corpus import stopwords
 
 
-def tokenize(tweets: dict, lang: str = None, reduce_len: bool = True,
-             remove_single: bool = False, remove_stopwords: bool = False) -> Generator[dict, None, None]:
+def tokenize(tweets: Iterable[dict], lang: str = None, reduce_len: bool = True,
+             remove_single: bool = False, remove_stopwords: bool = False) -> Iterable[dict]:
 
     if remove_stopwords and (not lang):
         raise RuntimeError("Missing language parameter")

@@ -1,11 +1,11 @@
-from typing import Generator
+from typing import Iterable
 import csv
 import lzma
 from tqdm import tqdm
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 
 
-def get_retweets(tweets: dict) -> Generator[dict, None, None]:
+def get_retweets(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         if "retweeted_status" not in tweet.keys():
             continue
@@ -18,12 +18,12 @@ def get_retweets(tweets: dict) -> Generator[dict, None, None]:
         }
         yield simple_tweet
 
-def extract_retweet_users(tweets: dict) -> Generator[dict, None, None]:
+def extract_retweet_users(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         tweet = {k: v for k, v in tweet.items() if k in ['user_id', 'retweeted_user_id']}
         yield tweet
 
-def graph_preprocess(filepath: str) -> Generator[dict, None, None]:
+def graph_preprocess(filepath: str) -> Iterable[dict]:
     """
     Get retweet edgelist from tweets given filepath.
 
@@ -42,7 +42,7 @@ def graph_preprocess(filepath: str) -> Generator[dict, None, None]:
     yield from tweets
 
 
-def _serial_graph_preprocess(all_filepaths, output_filepath):
+def _serial_graph_preprocess(all_filepaths: Iterable[str], output_filepath: str):
 
     #with lzma.LZMAFile(output_filepath, mode="wb", format=lzma.FORMAT_XZ) as fout:
     with open(output_filepath, mode="w") as fout:
