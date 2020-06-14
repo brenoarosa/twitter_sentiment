@@ -1,7 +1,6 @@
 from typing import Iterable
 import json
 import lzma
-import joblib
 from tqdm import tqdm
 from twitter_sentiment.preprocessors import (POSITIVE_TOKENS, NEGATIVE_TOKENS,
                                              POSITIVE_CLASS, NEGATIVE_CLASS)
@@ -9,7 +8,7 @@ from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 from twitter_sentiment.preprocessors.dataset_preprocess import filter_lang
 from twitter_sentiment.preprocessors.tokenizer import tokenize
 
-def tag_sentiment(tweets: Iterable[dict]) -> Iterable[dict]:
+def tag_sentiment(tweets: Iterable[dict], drop_multi_class: bool = True) -> Iterable[dict]:
     for tweet in tweets:
         tokens = tweet["tokenized_treated_text"]
         tags = set()
@@ -20,9 +19,17 @@ def tag_sentiment(tweets: Iterable[dict]) -> Iterable[dict]:
             elif token in NEGATIVE_TOKENS:
                 tags.add(NEGATIVE_CLASS)
 
-        if tags:
+        if not tags:
+            continue
+
+        if drop_multi_class:
+            if len(tags) > 1:
+                continue
+
+            tweet["distant_supervision_tags"] = tags.pop()
+        else:
             tweet["distant_supervision_tags"] = list(tags)
-            yield tweet
+        yield tweet
 
 def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Iterable[dict]:
     """
