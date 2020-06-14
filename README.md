@@ -24,7 +24,15 @@ python -m twitter_sentiment.graph.stats data/output/amazonia-edgelist.csv -o dat
 ```
 
 ## Text Classification
+Train Naive Bayes classifier:
+```sh
+python -m twitter_sentiment.text.nb data/output/amazonia-pt-tagged.jsonline.xz -mo models/amazonia-pt-nb.pickle -vo models/amazonia-pt-nb-vectorizer.pickle
+```
 
+Train SVM classifier:
+```sh
+python -m twitter_sentiment.text.svm data/output/amazonia-pt-tagged.jsonline.xz -mo models/amazonia-pt-svm.pickle -vo models/amazonia-pt-svm-vectorizer.pickle
+```
 
 ## Graph Classification
 Get graph embeddings:

@@ -3,6 +3,9 @@ import sys
 import time
 
 
+def identity(x):
+    return x
+
 def get_logger():
     """
     Return configured logger
