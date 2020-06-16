@@ -22,13 +22,21 @@ def tag_sentiment(tweets: Iterable[dict], drop_multi_class: bool = True) -> Iter
         if not tags:
             continue
 
+        # remove tokens used in distant supervision
+        tokens = [token for token in tokens if token not in POSITIVE_TOKENS]
+        tokens = [token for token in tokens if token not in NEGATIVE_TOKENS]
+        tweet["tokenized_treated_text"] = tokens
+
+        if len(tokens) == 0:
+            continue
+
         if drop_multi_class:
             if len(tags) > 1:
                 continue
-
             tweet["distant_supervision_tags"] = tags.pop()
         else:
             tweet["distant_supervision_tags"] = list(tags)
+
         yield tweet
 
 def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Iterable[dict]:
