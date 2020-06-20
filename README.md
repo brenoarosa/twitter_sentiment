@@ -37,5 +37,5 @@ python -m twitter_sentiment.text.svm data/output/amazonia-pt-tagged.jsonline.xz 
 ## Graph Classification
 Get graph embeddings:
 ```sh
-python -m twitter_sentiment.graph.embeddings data/output/amazonia-edgelist.csv -o data/output/amazonia-graph-embeddings.emb
+python -m twitter_sentiment.graph.embedding data/output/amazonia-edgelist.csv -o data/output/amazonia-graph-embedding.emb
 ```
