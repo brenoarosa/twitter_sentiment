@@ -1,8 +1,10 @@
 import os
 import tempfile
 import subprocess
+from typing import Iterable, Tuple
 from collections import namedtuple
 import joblib
+import numpy as np
 import pandas as pd
 from graph_tool import Graph
 from stellargraph.data import BiasedRandomWalk
@@ -71,7 +73,7 @@ def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bo
         )
 
         str_walks = [[str(n) for n in walk] for walk in walks]
-        model = Word2Vec(str_walks, size=128, window=5, min_count=0, sg=1, workers=-1, iter=1)
+        model = Word2Vec(str_walks, size=128, window=5, min_count=0, sg=1, workers=4, iter=1)
 
         weights = model.wv.vectors
         idx2user = dict(enumerate(model.wv.index2entity))
@@ -125,6 +127,21 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
     return emb
 
+
+def load_graph_emb_weight_and_X(model: GraphEmbedding, tweets: Iterable[dict]) -> Tuple[np.ndarray, np.ndarray]:
+
+    tweets_users = [t["user_id"] for t in tweets] # generator to list
+
+    X = np.zeros(len(tweets_users))
+
+    for i, user in enumerate(tweets_users):
+        user_idx = model.user2idx.get(user, 0)
+        X[i] = user_idx
+
+    vector_size = model.weights.shape[1]
+    pad_vector = np.zeros(vector_size)
+    weights = np.vstack((pad_vector, model.weights))
+    return weights, X
 
 if __name__ == "__main__":
     import argparse

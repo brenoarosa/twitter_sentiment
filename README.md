@@ -34,8 +34,13 @@ Train SVM classifier:
 python -m twitter_sentiment.text.svm data/output/amazonia-pt-tagged.jsonline.xz -mo models/amazonia-pt-svm.pickle -vo models/amazonia-pt-svm-vectorizer.pickle
 ```
 
+Train W2V embedding:
+```sh
+python -m twitter_sentiment.text.embedding data/output/amazonia-pt.jsonline.xz -o models/amazonia-pt-w2v.emb
+```
+
 ## Graph Classification
 Get graph embeddings:
 ```sh
-python -m twitter_sentiment.graph.embedding data/output/amazonia-edgelist.csv -o data/output/amazonia-graph-embedding.emb
+python -m twitter_sentiment.graph.embedding data/output/amazonia-edgelist.csv -o models/amazonia-graph-embedding.emb
 ```
