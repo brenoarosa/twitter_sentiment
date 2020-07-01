@@ -1,7 +1,8 @@
-from typing import Iterable
+from typing import Iterable, Tuple
 import json
 import lzma
 from tqdm import tqdm
+import numpy as np
 from twitter_sentiment.preprocessors import (POSITIVE_TOKENS, NEGATIVE_TOKENS,
                                              POSITIVE_CLASS, NEGATIVE_CLASS)
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
@@ -22,20 +23,23 @@ def tag_sentiment(tweets: Iterable[dict], drop_multi_class: bool = True) -> Iter
         if not tags:
             continue
 
+        tags = list(tags)
+        if drop_multi_class:
+            if len(tags) > 1:
+                continue
+            tweet["distant_supervision_tags"] = tags[0]
+        else:
+            tweet["distant_supervision_tags"] = list(tags)
+
+        if len(tags) == 1:
+            tweet["distant_supervision_y"] = int(tags[0] == POSITIVE_CLASS)
+
         # remove tokens used in distant supervision
-        tokens = [token for token in tokens if token not in POSITIVE_TOKENS]
-        tokens = [token for token in tokens if token not in NEGATIVE_TOKENS]
+        tokens = [token for token in tokens if token not in (POSITIVE_TOKENS + NEGATIVE_TOKENS)]
         tweet["tokenized_treated_text"] = tokens
 
         if len(tokens) == 0:
             continue
-
-        if drop_multi_class:
-            if len(tags) > 1:
-                continue
-            tweet["distant_supervision_tags"] = tags.pop()
-        else:
-            tweet["distant_supervision_tags"] = list(tags)
 
         yield tweet
 
@@ -65,6 +69,21 @@ def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Iterable[dic
     tweets = tag_sentiment(tweets)
     yield from tweets
 
+def extract_tokenized_text_and_Y(tweets: Iterable[dict]) -> Tuple[list, np.ndarray]:
+    X = list()
+    Y = list()
+
+    for t in tweets:
+        if t.get("distant_supervision_y") is None:
+            continue
+
+        x = t["tokenized_treated_text"]
+        y = t["distant_supervision_y"]
+        X.append(x)
+        Y.append(y)
+
+    Y = np.array(Y)
+    return X, Y
 
 def _serial_distant_supervision(all_filepaths: Iterable[str], output_filepath: str, lang: str):
 
