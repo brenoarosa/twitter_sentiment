@@ -39,6 +39,11 @@ Train W2V embedding:
 python -m twitter_sentiment.text.embedding data/output/amazonia-pt.jsonline.xz -o models/amazonia-pt-w2v.emb
 ```
 
+Train CNN + W2V classifier:
+```sh
+python -m twitter_sentiment.text.cnn data/output/amazonia-pt-tagged.jsonline.xz -e models/amazonia-pt-w2v.emb -mo models/amazonia-pt-cnn.h5
+```
+
 ## Graph Classification
 Get graph embeddings:
 ```sh
