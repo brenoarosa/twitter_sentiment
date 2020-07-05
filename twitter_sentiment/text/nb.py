@@ -1,4 +1,3 @@
-from typing import Iterable, Tuple
 import joblib
 import numpy as np
 import sklearn.naive_bayes
@@ -6,12 +5,12 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.feature_extraction.text import CountVectorizer
 from twitter_sentiment.utils import identity
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
-from twitter_sentiment.preprocessors.distant_supervision import extract_tokenized_text_and_Y
+from twitter_sentiment.preprocessors.distant_supervision import extract_tweets_tokenized_text_and_Y
 
 def train_model(filepath: str, model_output: str, vectorizer_output: str):
     tweets = read_jsonlines_lzma(filepath)
 
-    X, Y = extract_tokenized_text_and_Y(tweets)
+    _, X, Y = extract_tweets_tokenized_text_and_Y(tweets)
 
     vectorizer = CountVectorizer(tokenizer=identity, preprocessor=identity)
     X = vectorizer.fit_transform(X)

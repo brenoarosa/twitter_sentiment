@@ -69,21 +69,25 @@ def distant_supervision_dataset(filepath: str, lang: str = 'pt') -> Iterable[dic
     tweets = tag_sentiment(tweets)
     yield from tweets
 
-def extract_tokenized_text_and_Y(tweets: Iterable[dict]) -> Tuple[list, np.ndarray]:
+def extract_tweets_tokenized_text_and_Y(tweets: Iterable[dict]) -> Tuple[list, list, np.ndarray]:
     X = list()
     Y = list()
 
-    for t in tweets:
+    tweets = list(tweets)
+    valid_indices = []
+    for i, t in enumerate(tweets):
         if t.get("distant_supervision_y") is None:
             continue
 
+        valid_indices.append(i)
         x = t["tokenized_treated_text"]
         y = t["distant_supervision_y"]
         X.append(x)
         Y.append(y)
 
     Y = np.array(Y)
-    return X, Y
+    tweets = [tweets[i] for i in valid_indices]
+    return tweets, X, Y
 
 def _serial_distant_supervision(all_filepaths: Iterable[str], output_filepath: str, lang: str):
 
