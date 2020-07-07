@@ -88,6 +88,7 @@ def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bo
 def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     edge_list_fd, edge_list_filepath = tempfile.mkstemp()
     logger.info("Writing node2vec edgelist to [%s]", edge_list_filepath)
+
     with os.fdopen(edge_list_fd, 'w') as edgelist:
         for edge in g.edges():
             edgelist.write(f"{int(edge.source())} {int(edge.target())}\n")
@@ -116,8 +117,12 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     logger.info("Writing embedding file to [%s]", embedding_filepath)
     subprocess.run(cmd, check=True)
 
-    names = ["user_id"] + [f"emb_{i}" for i in range(128)]
+    names = ["vertex_index"] + [f"emb_{i}" for i in range(params["dimensions"])]
     df = pd.read_csv(embedding_filepath, sep=" ", header=None, names=names, skiprows=1)
+
+    user_ids = g.vp["user_ids"]
+    df["user_id"] = df.vertex_index.apply(lambda x: user_ids[x])
+    df = df.drop(columns="vertex_index")
 
     weights = df.drop(columns="user_id").values
 

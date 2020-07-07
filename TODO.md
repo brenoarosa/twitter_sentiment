@@ -1,8 +1,8 @@
 Grandes blocos de codigo faltante:
 - Implantar classificadores texto NN:
     - ~~representacao Word2vec~~
+    - ~~classificador CNN~~
     - representacao LSTM (Cho et al)
-    - classificador CNN
     - classificador ELMO
     - classificador BERT (Tranformers?)
 - Juntar embedding texto + embedding grafo no classificador

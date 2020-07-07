@@ -21,7 +21,8 @@ def load_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bool = Fal
 
     retweets_prop = g.new_edge_property("int")
     eprops = [retweets_prop]
-    g.add_edge_list(get_df_iterator(df), hashed=True, string_vals=True, eprops=eprops)
+    user_ids = g.add_edge_list(get_df_iterator(df), hashed=True, string_vals=True, eprops=eprops)
+    g.vertex_properties["user_ids"] = user_ids
     g.edge_properties["retweets"] = retweets_prop
 
     if trim_self_loop:
