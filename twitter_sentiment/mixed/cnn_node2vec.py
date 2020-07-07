@@ -22,14 +22,14 @@ def train_model(filepath: str, text_embedding_path: str, user_embedding_path: st
     w2v = Word2Vec.load(text_embedding_path)
     text_emb_weights, text_X = load_w2v_weight_and_X(w2v, tweets, seq_len=seq_len)
 
-    words_in_emb_perc = 100 * (text_X != 0).mean()
-    logger.info(f"percentage of words in embedding: {words_in_emb_perc:2.1f}%")
+    words_in_emb = (text_X != 0).mean()
+    logger.info(f"percentage of words in embedding: {words_in_emb:.1%}")
 
     n2v = joblib.load(user_embedding_path)
     user_emb_weights, user_X = load_graph_emb_weight_and_X(n2v, tweets)
 
-    users_in_emb_perc = 100 * (user_X != 0).mean()
-    logger.info(f"percentage of users in embedding: {users_in_emb_perc:2.1f}%")
+    users_in_emb = (user_X != 0).mean()
+    logger.info(f"percentage of users in embedding: {users_in_emb:.1%}")
 
     user_input = tf.keras.Input(shape=(1,), name="user_input")
     text_input = tf.keras.Input(shape=(seq_len,), name="text_input")
