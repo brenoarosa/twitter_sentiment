@@ -49,3 +49,9 @@ Get graph embeddings:
 ```sh
 python -m twitter_sentiment.graph.embedding data/output/amazonia-edgelist.csv -o models/amazonia-graph-embedding.emb
 ```
+
+## Joint Classification
+CNN + Node2Vec:
+```sh
+python -m twitter_sentiment.mixed.cnn_node2vec data/output/amazonia-pt-tagged.jsonline.xz -te models/amazonia-pt-w2v.emb -ue models/amazonia-graph-embedding.emb -mo models/amazonia-pt-cnn_node2vec.h5
+```
