@@ -98,8 +98,7 @@ def text_format(tweets: Iterable[dict]) -> Iterable[dict]:
 
         treated_text = text.lower() # lowercase all
         treated_text = re.sub(r'\B@\w+', SPECIAL_TOKENS['mention'], treated_text)
-        treated_text = re.sub(r'(?:(?:https?):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+',
-                              SPECIAL_TOKENS['link'], treated_text)
+        treated_text = re.sub(r'https:\/\/t.co\/([-a-zA-Z0-9@:%_\+.~#?&//=\]\[]*)', SPECIAL_TOKENS['link'], treated_text)
 
         tweet["treated_text"] = treated_text
         yield tweet
