@@ -18,6 +18,23 @@ def get_retweets(tweets: Iterable[dict]) -> Iterable[dict]:
         }
         yield simple_tweet
 
+def get_retweets_best_effort(tweets: Iterable[dict]) -> Iterable[dict]:
+    for tweet in tweets:
+        if "retweeted_status" not in tweet.keys():
+            continue
+
+        user = tweet.get("user_info") or tweet["user"]
+        retweet = tweet["retweeted_status"]
+        retweet_user = retweet.get("user_info") or retweet["user"]
+
+        simple_tweet = {
+            "user_id": user.get("id_str") or user["id"],
+            "retweeted_user_id": retweet_user.get("id_str") or retweet_user["id"],
+            "tweet_id": tweet.get("id_str") or tweet["id"],
+            "retweeted_tweet_id": retweet.get("id_str") or retweet["id"],
+        }
+        yield simple_tweet
+
 def extract_retweet_users(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         tweet = {k: v for k, v in tweet.items() if k in ['user_id', 'retweeted_user_id']}
@@ -37,7 +54,7 @@ def graph_preprocess(filepath: str) -> Iterable[dict]:
 
     # FIXME: check if need to deduplicate (or count) edge pairs
     tweets = read_jsonlines_lzma(filepath)
-    tweets = get_retweets(tweets)
+    tweets = get_retweets_best_effort(tweets)
     tweets = extract_retweet_users(tweets)
     yield from tweets
 

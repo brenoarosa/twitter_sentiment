@@ -5,7 +5,7 @@ Code implementing my [master thesis](https://github.com/brenoarosa/thesis).
 ## Dataset Pre-Processing
 Extract core tweet fields from raw tweets:
 ```sh
-python -m twitter_sentiment.preprocessors.dataset_preprocess data/tweets/amazonia_lzma/*.jsonlines.lzma -o data/output/amazonia-pt.jsonline.xz -l pt
+python -m twitter_sentiment.preprocessors.dataset_preprocess data/tweets/amazonia_lzma/*.jsonlines.xz -o data/output/amazonia-pt.jsonline.xz -l pt
 ```
 
 Tag with distant supervision:
@@ -15,7 +15,7 @@ python -m twitter_sentiment.preprocessors.distant_supervision data/output/amazon
 
 Build edgelist from raw tweets:
 ```sh
-python -m twitter_sentiment.graph.preprocess data/tweets/amazonia_lzma/*.jsonlines.lzma -o data/output/amazonia-edgelist.csv
+python -m twitter_sentiment.graph.preprocess data/tweets/amazonia_lzma/*.jsonlines.xz -o data/output/amazonia-edgelist.csv
 ```
 
 Calculate base graph stats:

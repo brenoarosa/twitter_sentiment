@@ -8,11 +8,35 @@ from tqdm import tqdm
 from twitter_sentiment.preprocessors import SPECIAL_TOKENS
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 
-def get_original_posts(tweets: Iterable[dict]) -> Iterable[dict]:
+def get_original_posts_v1(tweets: Iterable[dict]) -> Iterable[dict]:
+    for tweet in tweets:
+        user_field = "user"
+        text_field = "full_text"
+        id_field = "id_str"
+
+        if "error" in tweet.keys():
+            continue
+
+        # use quoted tweets same as original
+        if "retweeted_status" in tweet.keys():
+            tweet = tweet["retweeted_status"]
+
+        simple_tweet = {
+            "user_id": tweet[user_field]["id_str"],
+            "text": tweet[text_field],
+            "id": tweet[id_field],
+            "lang": tweet["lang"],
+        }
+        yield simple_tweet
+
+def get_original_posts_v2(tweets: Iterable[dict]) -> Iterable[dict]:
     for tweet in tweets:
         user_field = "user_info"
         text_field = "text"
         id_field = "id"
+
+        if "error" in tweet.keys():
+            continue
 
         # use quoted tweets same as original
         if "retweeted_status" in tweet.keys():
@@ -25,6 +49,26 @@ def get_original_posts(tweets: Iterable[dict]) -> Iterable[dict]:
             "user_id": tweet[user_field]["id_str"],
             "text": tweet[text_field],
             "id": tweet[id_field],
+            "lang": tweet["lang"],
+        }
+        yield simple_tweet
+
+def get_original_posts_best_effort(tweets: Iterable[dict]) -> Iterable[dict]:
+    for tweet in tweets:
+
+        if "error" in tweet.keys():
+            continue
+
+        # use quoted tweets same as original
+        if "retweeted_status" in tweet.keys():
+            tweet = tweet["retweeted_status"]
+
+        user = tweet.get("user_info") or tweet["user"]
+
+        simple_tweet = {
+            "user_id": user.get("id_str") or user["id"],
+            "text": tweet.get("text") or tweet["full_text"],
+            "id": tweet.get("id_str") or tweet["id"],
             "lang": tweet["lang"],
         }
         yield simple_tweet
@@ -76,8 +120,12 @@ def dataset_preprocess(filepath: str, lang: str = 'pt') -> Iterable[dict]:
     :returns: generator of tweets
     """
 
+    # amazonia uses get_original_posts_v2
+    # others mostly uses get_original_posts_v1
+    # either failing the get_original_posts_best_effort or any adaptation can be tested
+
     tweets = read_jsonlines_lzma(filepath)
-    tweets = get_original_posts(tweets)
+    tweets = get_original_posts_best_effort(tweets)
     if lang:
         tweets = filter_lang(tweets, lang)
     tweets = remove_duplicates(tweets)
