@@ -18,7 +18,7 @@ def train_model(filepath: str, model_output: str, vectorizer_output: str):
     estimator = linear_model.SGDClassifier(
         loss='hinge',
         penalty='l2',
-        max_iter=100,
+        max_iter=1000,
         tol=1e-2,
         class_weight="balanced")
 
