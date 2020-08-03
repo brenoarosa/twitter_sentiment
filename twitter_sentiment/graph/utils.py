@@ -4,8 +4,13 @@ from graph_tool.topology import label_largest_component
 from graph_tool.stats import remove_self_loops
 import networkx as nx
 import stellargraph as sg
+from twitter_sentiment.utils import get_logger
+
+
+logger = get_logger()
 
 def load_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bool = False) -> Graph:
+    logger.info("Loading file and counting retweets...")
     df = pd.read_csv(filepath, sep=",", dtype="str")
     df = df.groupby(["user_id", "retweeted_user_id"]).size().reset_index(name='retweet_count')
     g = Graph()
@@ -21,6 +26,8 @@ def load_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bool = Fal
 
     retweets_prop = g.new_edge_property("int")
     eprops = [retweets_prop]
+
+    logger.info("Adding edge list to graph...")
     user_ids = g.add_edge_list(get_df_iterator(df), hashed=True, string_vals=True, eprops=eprops)
     g.vertex_properties["user_ids"] = user_ids
     g.edge_properties["retweets"] = retweets_prop

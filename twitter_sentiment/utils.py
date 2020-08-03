@@ -2,14 +2,14 @@ import logging
 import sys
 import time
 
+_logger_instance = None
 
 def identity(x):
     return x
 
-def get_logger():
-    """
-    Return configured logger
-    """
+def setup_logger():
+    global _logger_instance
+
     logger = logging.getLogger("twitter_sentiment")
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s %(name)s [%(levelname).5s]: %(message)s')
@@ -25,7 +25,18 @@ def get_logger():
 
     logger.addHandler(stdout_handler)
     logger.addHandler(file_handler)
-    return logger
+    _logger_instance = logger
+
+def get_logger():
+    """
+    Return configured logger
+    """
+    global _logger_instance
+
+    if not _logger_instance:
+        setup_logger()
+
+    return _logger_instance
 
 def download_data():
     pass
