@@ -88,9 +88,22 @@ def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bo
 def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     edge_list_fd, edge_list_filepath = tempfile.mkstemp()
     logger.info("Writing node2vec edgelist to [%s]", edge_list_filepath)
+    logger.info(f"Graph with [{g.num_edges()}] nodes and [{g.num_vertices()}] edges.")
+
+    MAX_EDGES = 1000000
+    sample_output = False
+
+    if g.num_edges() > MAX_EDGES:
+        logger.info(f"Too many edges, sampling [{MAX_EDGES}] of them.")
+        sample_output = True
+        sample_rate = MAX_EDGES / g.num_edges()
+        samples = np.random.rand(g.num_edges())
 
     with os.fdopen(edge_list_fd, 'w') as edgelist:
-        for edge in g.edges():
+        for i, edge in enumerate(g.edges()):
+            if sample_output and (samples[i] > sample_rate):
+                continue
+
             edgelist.write(f"{int(edge.source())} {int(edge.target())}\n")
 
     _, embedding_filepath = tempfile.mkstemp()
