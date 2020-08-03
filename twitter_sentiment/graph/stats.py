@@ -71,9 +71,9 @@ def calculate_base_stats(g: Graph) -> dict:
     std_sum_squared = (dist_value - dist_mean)**2
     dist_std = np.sqrt((std_sum_squared * dist_count).sum() / (dist_count.sum() - 1))
     dist_stats = {
-        "max": dist_max,
-        "mean": dist_mean,
-        "std": dist_std,
+        "max": float(dist_max),
+        "mean": float(dist_mean),
+        "std": float(dist_std),
     }
 
     dist_dict = dict(zip(dist_count.tolist(), dist_value.tolist()))
