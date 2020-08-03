@@ -98,16 +98,16 @@ def calculate_base_stats(g: Graph) -> dict:
 
 def get_stats(values: np.ndarray):
     stats = {}
-    stats["min"] = values.min().item()
-    stats["max"] = values.max().item()
-    stats["mean"] = values.mean().item()
-    stats["std"] = values.std().item()
-    stats["p25"] = np.quantile(values, 0.25).item()
-    stats["p50"] = np.quantile(values, 0.50).item()
-    stats["p75"] = np.quantile(values, 0.75).item()
-    stats["p90"] = np.quantile(values, 0.90).item()
-    stats["p95"] = np.quantile(values, 0.95).item()
-    stats["p99"] = np.quantile(values, 0.99).item()
+    stats["min"] = float(values.min())
+    stats["max"] = float(values.max())
+    stats["mean"] = float(values.mean())
+    stats["std"] = float(values.std())
+    stats["p25"] = float(np.quantile(values, 0.25))
+    stats["p50"] = float(np.quantile(values, 0.50))
+    stats["p75"] = float(np.quantile(values, 0.75))
+    stats["p90"] = float(np.quantile(values, 0.90))
+    stats["p95"] = float(np.quantile(values, 0.95))
+    stats["p99"] = float(np.quantile(values, 0.99))
     return stats
 
 if __name__ == "__main__":
