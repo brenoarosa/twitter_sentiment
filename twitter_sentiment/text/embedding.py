@@ -52,11 +52,7 @@ def train_w2v(filepath: str, output_path: str, tokenizer: Callable = tokenize, *
     model.train(tweets_tokens, total_examples=model.corpus_count, epochs=model_parameters["epochs"])
     model.save(output_path)
 
-def load_w2v_weight_and_X(model: Word2Vec, tweets: Iterable[dict], seq_len: int = 40,
-                          tokenizer: Callable = tokenize) -> Tuple[np.ndarray, np.ndarray]:
-
-    tweets = tokenizer(tweets)
-    tweets_tokens = [t["tokenized_treated_text"] for t in tweets] # generator to list
+def load_w2v_weight_and_X(model: Word2Vec, tweets_tokens: Iterable[list], seq_len: int = 40) -> Tuple[np.ndarray, np.ndarray]:
 
     word2index = {v: k for k, v in enumerate(model.wv.index2word)}
     X = np.zeros((len(tweets_tokens), seq_len))
@@ -103,10 +99,7 @@ def train_d2v(filepath: str, output_path: str, tokenizer: Callable = tokenize, *
     model.train(tweets_corpus, total_examples=model.corpus_count, epochs=model_parameters["epochs"])
     model.save(output_path)
 
-def load_d2v_X(model: Doc2Vec, tweets: Iterable[dict], tokenizer: Callable = tokenize) -> np.ndarray:
-
-    tweets = tokenizer(tweets)
-    tweets_tokens = [t["tokenized_treated_text"] for t in tweets] # generator to list
+def load_d2v_X(model: Doc2Vec, tweets_tokens: Iterable[list]) -> np.ndarray:
 
     X = np.zeros((len(tweets_tokens), model.vector_size))
     for i, tweet_tokens in enumerate(tweets_tokens):

@@ -16,11 +16,11 @@ logger = get_logger()
 def train_model(filepath: str, text_embedding_path: str, user_embedding_path: str, model_output: str):
     tweets = read_jsonlines_lzma(filepath)
 
-    tweets, _, Y = extract_tweets_tokenized_text_and_Y(tweets)
+    tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
 
     seq_len = 40 # FIXME
     w2v = Word2Vec.load(text_embedding_path)
-    text_emb_weights, text_X = load_w2v_weight_and_X(w2v, tweets, seq_len=seq_len)
+    text_emb_weights, text_X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
 
     words_in_emb = (text_X != 0).mean()
     logger.info(f"percentage of words in embedding: {words_in_emb:.1%}")

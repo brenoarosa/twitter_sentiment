@@ -10,11 +10,11 @@ from twitter_sentiment.preprocessors.distant_supervision import extract_tweets_t
 def train_model(filepath: str, embedding_path: str, model_output: str):
     tweets = read_jsonlines_lzma(filepath)
 
-    tweets, _, Y = extract_tweets_tokenized_text_and_Y(tweets)
+    tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
 
     seq_len = 40 # FIXME
     w2v = Word2Vec.load(embedding_path)
-    emb_weights, X = load_w2v_weight_and_X(w2v, tweets, seq_len=seq_len)
+    emb_weights, X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
 
     model = models.Sequential()
     model.add(layers.Embedding(emb_weights.shape[0], emb_weights.shape[1],
