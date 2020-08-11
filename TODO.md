@@ -2,12 +2,12 @@ Grandes blocos de codigo faltante:
 - Implantar classificadores texto NN:
     - ~~representacao Word2vec~~
     - ~~classificador CNN~~
-    - representacao LSTM (Cho et al)
+    - ~~representacao LSTM (Cho et al)~~
     - classificador ELMO
     - classificador BERT (Tranformers?)
 - Juntar embedding texto + embedding grafo no classificador
 - Adicionar outros algoritmos de representacao de grafos:
-    - LLE
+    - LLE (sk-learn)
     - automapas laplacianos
     - HOPE
     - deepwalk
