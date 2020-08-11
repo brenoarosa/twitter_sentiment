@@ -32,3 +32,5 @@ NEGATIVE_TOKENS = [
     "😔",
     "😪",
 ]
+
+ALL_TOKENS = POSITIVE_TOKENS + NEGATIVE_TOKENS

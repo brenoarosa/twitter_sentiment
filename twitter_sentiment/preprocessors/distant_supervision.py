@@ -1,10 +1,12 @@
+import re
 from typing import Iterable, Tuple
 import json
 import lzma
 from tqdm import tqdm
 import numpy as np
 from twitter_sentiment.preprocessors import (POSITIVE_TOKENS, NEGATIVE_TOKENS,
-                                             POSITIVE_CLASS, NEGATIVE_CLASS)
+                                             POSITIVE_CLASS, NEGATIVE_CLASS,
+                                             ALL_TOKENS)
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
 from twitter_sentiment.preprocessors.dataset_preprocess import filter_lang
 from twitter_sentiment.preprocessors.tokenizer import tokenize
@@ -35,8 +37,11 @@ def tag_sentiment(tweets: Iterable[dict], drop_multi_class: bool = True) -> Iter
             tweet["distant_supervision_y"] = int(tags[0] == POSITIVE_CLASS)
 
         # remove tokens used in distant supervision
-        tokens = [token for token in tokens if token not in (POSITIVE_TOKENS + NEGATIVE_TOKENS)]
+        tokens = [token for token in tokens if token not in ALL_TOKENS]
         tweet["tokenized_treated_text"] = tokens
+
+        # remove tokens trom treated_text also
+        tweet["treated_text"] = re.sub(r'|'.join(map(re.escape, ALL_TOKENS)), '', tweet["treated_text"])
 
         if len(tokens) == 0:
             continue
