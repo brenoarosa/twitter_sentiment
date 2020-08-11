@@ -35,11 +35,8 @@ def train_model(filepath: str, model_output: str):
     for w in bert.bert.weights:
         w._trainable= False
 
-    # TODO: verificar como as hashtags estao chegando, funcoes uteis: tokenizer.decode(), tokenizer.ids_to_tokens
-
     X = tokenizer(tokenized_texts, is_pretokenized=True, padding=True, return_tensors='tf')
     X = [X["input_ids"], X["token_type_ids"], X["attention_mask"],]
-
 
     input_ids = layers.Input(shape=(None,), dtype=tf.int32)
     token_type_ids = layers.Input(shape=(None,), dtype=tf.int32)
