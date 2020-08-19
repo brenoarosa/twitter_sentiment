@@ -47,7 +47,11 @@ python -m twitter_sentiment.text.cnn data/output/amazonia-pt-tagged.jsonline.xz 
 ## Graph Classification
 Get graph embeddings:
 ```sh
-python -m twitter_sentiment.graph.embedding data/output/amazonia-edgelist.csv -o models/amazonia-graph-embedding.emb
+# node2vec
+python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a node2vec -o models/all-graph-embedding-lle.emb
+
+# lle
+python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a lle -o models/all-graph-embedding-lle.emb
 ```
 
 ## Joint Classification

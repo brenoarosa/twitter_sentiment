@@ -7,8 +7,10 @@ import joblib
 import numpy as np
 import pandas as pd
 from graph_tool import Graph
+from graph_tool.spectral import adjacency
 from stellargraph.data import BiasedRandomWalk
 from gensim.models import Word2Vec
+from sklearn.manifold import LocallyLinearEmbedding
 from twitter_sentiment.utils import get_logger
 from twitter_sentiment.graph.utils import load_graph, load_stellar_graph
 
@@ -28,11 +30,45 @@ def graph_embedding(edgelist_filepath: str, algorithm: str, output_path: str, pr
     elif algorithm == "node2vec_stellar":
         embedding = node2vec(edgelist_filepath, "stellar", prune_scc=prune_scc)
 
+    elif algorithm == "lle":
+        embedding = lle(edgelist_filepath, prune_scc)
+
     else:
         raise ValueError("Invalid embedding algorithm")
 
     joblib.dump(embedding, output_path)
     return embedding
+
+def lle(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedding:
+    g = load_graph(edgelist_filepath, prune_scc=prune_scc)
+    A = adjacency(g)
+
+    MAX_VERTICES = 10000
+
+    params = {
+        "dimensions": 128,
+    }
+
+    n_vertices = g.num_vertices()
+    indexes = np.arange(n_vertices)
+
+    if n_vertices > MAX_VERTICES:
+        logger.warning(f"Too many vertices, sampling [{MAX_VERTICES}] of them.")
+
+        indexes = np.random.choice(n_vertices, MAX_VERTICES, replace=False)
+        indexes.sort()
+        A = A[indexes, :][:, indexes]
+
+    logger.info("Calculating embedding...")
+    embedding = LocallyLinearEmbedding(n_components=params["dimensions"], n_jobs=-1)
+    vertice_embedding = embedding.fit_transform(A.todense())
+
+    weights = vertice_embedding
+    idx2user = dict(enumerate(indexes))
+    user2idx = {v: k for k, v in enumerate(indexes)}
+    emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
+    return emb
+
 
 def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bool = True, **kwargs) -> GraphEmbedding:
 
@@ -94,7 +130,7 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     sample_output = False
 
     if g.num_edges() > MAX_EDGES:
-        logger.info(f"Too many edges, sampling [{MAX_EDGES}] of them.")
+        logger.warning(f"Too many edges, sampling [{MAX_EDGES}] of them.")
         sample_output = True
         sample_rate = MAX_EDGES / g.num_edges()
         samples = np.random.rand(g.num_edges())
@@ -166,6 +202,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Path to edge list file", type=str)
     parser.add_argument("-o", "--output", help="Path to output file", type=str, required=True)
+    parser.add_argument("-a", "--algorithm", help="Algorithm", type=str, default="node2vec")
     args = parser.parse_args()
 
-    graph_embedding(args.input, algorithm="node2vec", output_path=args.output)
+    graph_embedding(args.input, algorithm=args.algorithm, output_path=args.output)
