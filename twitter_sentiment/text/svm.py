@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 from sklearn import linear_model
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import CountVectorizer
 from twitter_sentiment.utils import identity
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
@@ -34,6 +35,10 @@ def train_model(filepath: str, model_output: str, vectorizer_output: str):
     )
 
     model.fit(X, Y)
+
+    model = CalibratedClassifierCV(model.best_estimator_, cv=5, method='sigmoid')
+    model.fit(X, Y)
+
     joblib.dump(vectorizer, vectorizer_output)
     joblib.dump(model, model_output)
 
