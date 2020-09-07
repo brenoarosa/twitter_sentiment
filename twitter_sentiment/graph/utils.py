@@ -41,6 +41,7 @@ def load_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bool = Fal
 
 def load_stellar_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bool = False) -> sg.StellarGraph:
     df = pd.read_csv(filepath, sep=",", dtype="str")
+    df = df.head(500000)
     df = df.groupby(["user_id", "retweeted_user_id"]).size().reset_index(name='retweet_count')
 
     nx_g = nx.from_pandas_edgelist(df, "user_id", "retweeted_user_id", edge_attr="retweet_count", create_using=nx.DiGraph)
@@ -54,5 +55,5 @@ def load_stellar_graph(filepath: str, trim_self_loop: bool = True, prune_scc: bo
         else:
             nx_g = nx_g.subgraph(max(nx.connected_components(nx_g), key=len))
 
-    g = sg.StellarGraph.from_networkx(nx_g)
+    g = sg.StellarGraph.from_networkx(nx_g.to_undirected())
     return g

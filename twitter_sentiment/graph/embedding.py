@@ -21,6 +21,8 @@ GraphEmbedding = namedtuple('GraphEmbedding', ["idx2user", "user2idx", "weights"
 
 def graph_embedding(edgelist_filepath: str, algorithm: str, output_path: str, prune_scc: bool = True) -> GraphEmbedding:
 
+    gcn(edgelist_filepath, prune_scc)
+
     if algorithm == "node2vec":
         embedding = node2vec(edgelist_filepath, prune_scc=prune_scc)
 
@@ -68,6 +70,90 @@ def lle(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedd
     user2idx = {v: k for k, v in enumerate(indexes)}
     emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
     return emb
+
+def gcn(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedding:
+
+    import stellargraph as sg
+    from stellargraph.data import EdgeSplitter
+    from stellargraph.mapper import FullBatchLinkGenerator
+    from stellargraph.layer import GCN, LinkEmbedding
+
+
+    from tensorflow import keras
+    from sklearn import preprocessing, feature_extraction, model_selection
+
+    G = load_stellar_graph(edgelist_filepath, prune_scc=prune_scc)
+    import ipdb; ipdb.set_trace()
+
+    # Define an edge splitter on the original graph G:
+    edge_splitter_test = EdgeSplitter(G)
+
+    # Randomly sample a fraction p=0.1 of all positive links, and same number of negative links, from G, and obtain the
+    # reduced graph G_test with the sampled links removed:
+    G_test, edge_ids_test, edge_labels_test = edge_splitter_test.train_test_split(
+        p=0.1, method="global", keep_connected=True
+    )
+
+    # Define an edge splitter on the reduced graph G_test:
+    edge_splitter_train = EdgeSplitter(G_test)
+
+    # Randomly sample a fraction p=0.1 of all positive links, and same number of negative links, from G_test, and obtain the
+    # reduced graph G_train with the sampled links removed:
+    G_train, edge_ids_train, edge_labels_train = edge_splitter_train.train_test_split(
+        p=0.1, method="global", keep_connected=True
+    )
+
+    epochs = 50
+    train_gen = FullBatchLinkGenerator(G_train, method="gcn")
+    train_flow = train_gen.flow(edge_ids_train, edge_labels_train)
+
+    test_gen = FullBatchLinkGenerator(G_test, method="gcn")
+    test_flow = train_gen.flow(edge_ids_test, edge_labels_test)
+
+    gcn = GCN(
+        layer_sizes=[16, 16], activations=["relu", "relu"], generator=train_gen, dropout=0.3
+    )
+
+    x_inp, x_out = gcn.in_out_tensors()
+
+    prediction = LinkEmbedding(activation="relu", method="ip")(x_out)
+
+    prediction = keras.layers.Reshape((-1,))(prediction)
+
+    model = keras.Model(inputs=x_inp, outputs=prediction)
+
+    model.compile(
+        optimizer=keras.optimizers.Adam(lr=0.01),
+        loss=keras.losses.binary_crossentropy,
+        metrics=["acc"],
+    )
+
+    init_train_metrics = model.evaluate(train_flow)
+    init_test_metrics = model.evaluate(test_flow)
+
+    print("\nTrain Set Metrics of the initial (untrained) model:")
+    for name, val in zip(model.metrics_names, init_train_metrics):
+        print("\t{}: {:0.4f}".format(name, val))
+
+    print("\nTest Set Metrics of the initial (untrained) model:")
+    for name, val in zip(model.metrics_names, init_test_metrics):
+        print("\t{}: {:0.4f}".format(name, val))
+
+    history = model.fit(
+        train_flow, epochs=epochs, validation_data=test_flow, verbose=2, shuffle=False
+    )
+
+    train_metrics = model.evaluate(train_flow)
+    test_metrics = model.evaluate(test_flow)
+
+    print("\nTrain Set Metrics of the trained model:")
+    for name, val in zip(model.metrics_names, train_metrics):
+        print("\t{}: {:0.4f}".format(name, val))
+
+    print("\nTest Set Metrics of the trained model:")
+    for name, val in zip(model.metrics_names, test_metrics):
+        print("\t{}: {:0.4f}".format(name, val))
+
 
 
 def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bool = True, **kwargs) -> GraphEmbedding:
