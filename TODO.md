@@ -3,12 +3,14 @@ Grandes blocos de codigo faltante:
     - ~~representacao Word2vec~~
     - ~~classificador CNN~~
     - ~~representacao LSTM (Cho et al)~~
-    - classificador ELMO
+    - classificador ELMO (ver AllenNLP, tem portugues pre treinado no site)
     - classificador BERT (Tranformers?)
+    - classificador ELECTRA (hugging face tb)
 - Juntar embedding texto + embedding grafo no classificador
+    - usar eles pre-treinados individualmente e fazer fine-tunning?
 - Adicionar outros algoritmos de representacao de grafos:
-    - LLE (sk-learn)
+    - ~~LLE~~
     - automapas laplacianos
     - HOPE
-    - deepwalk
+    - deepwalk (parecido com node2vec)
     - GCN
