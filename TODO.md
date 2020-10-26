@@ -13,4 +13,6 @@ Grandes blocos de codigo faltante:
     - automapas laplacianos
     - HOPE
     - deepwalk (parecido com node2vec)
-    - GCN
+    - GCN (usar o grau como feature?)
+    - Learning Structural Node Embeddings via Diffusion Wavelets (tem na lib stellar, parecido com node2vec, precisaria escrever no texto)
+    - investigar Deep Graph Infomax

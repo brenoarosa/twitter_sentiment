@@ -133,3 +133,4 @@ dmypy.json
 *.sw?
 
 notebooks/tmp/
+backup/

@@ -10,7 +10,7 @@ python -m twitter_sentiment.preprocessors.dataset_preprocess data/tweets/amazoni
 
 Tag with distant supervision:
 ```sh
-python -m twitter_sentiment.preprocessors.distant_supervision data/output/amazonia-pt.jsonline.xz -o data/output/amazonia-pt-tagged.jsonline.xz -l pt
+python -m twitter_sentiment.preprocessors.distant_supervision data/output/all_deduplicated-pt.jsonline.xz -o data/output/all_deduplicated-pt-tagged.jsonline.xz -l pt
 ```
 
 Build edgelist from raw tweets:
@@ -20,42 +20,42 @@ python -m twitter_sentiment.graph.preprocess data/tweets/amazonia_lzma/*.jsonlin
 
 Calculate base graph stats:
 ```sh
-python -m twitter_sentiment.graph.stats data/output/amazonia-edgelist.csv -o data/output/amazonia-graph-stats.json
+python -m twitter_sentiment.graph.stats data/output/all-edgelist.csv -o data/output/all-graph-stats.json
 ```
 
 ## Text Classification
 Train Naive Bayes classifier:
 ```sh
-python -m twitter_sentiment.text.nb data/output/amazonia-pt-tagged.jsonline.xz -mo models/amazonia-pt-nb.pickle -vo models/amazonia-pt-nb-vectorizer.pickle
+python -m twitter_sentiment.text.nb data/output/all_deduplicated-pt-tagged.jsonline.xz -mo models/nb-pt.pickle -vo models/nb-pt-vectorizer.pickle
 ```
 
 Train SVM classifier:
 ```sh
-python -m twitter_sentiment.text.svm data/output/amazonia-pt-tagged.jsonline.xz -mo models/amazonia-pt-svm.pickle -vo models/amazonia-pt-svm-vectorizer.pickle
+python -m twitter_sentiment.text.svm data/output/all_deduplicated-pt-tagged.jsonline.xz -mo models/svm-pt.pickle -vo models/svm-pt-vectorizer.pickle
 ```
 
 Train W2V embedding:
 ```sh
-python -m twitter_sentiment.text.embedding data/output/amazonia-pt.jsonline.xz -o models/amazonia-pt-w2v.emb
+python -m twitter_sentiment.text.embedding data/output/all_deduplicated-pt.jsonline.xz -o models/w2v-pt.emb
 ```
 
 Train CNN + W2V classifier:
 ```sh
-python -m twitter_sentiment.text.cnn data/output/amazonia-pt-tagged.jsonline.xz -e models/amazonia-pt-w2v.emb -mo models/amazonia-pt-cnn.h5
+python -m twitter_sentiment.text.cnn data/output/all_deduplicated-pt-tagged.jsonline.xz -e models/w2v-pt.emb -mo models/cnn-pt.h5
 ```
 
-## Graph Classification
+## Graph Representation
 Get graph embeddings:
 ```sh
 # node2vec
-python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a node2vec -o models/all-graph-embedding-lle.emb
+python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a node2vec -o models/graph-n2v.emb
 
 # lle
-python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a lle -o models/all-graph-embedding-lle.emb
+python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a lle -o models/graph-lle.emb
 ```
 
 ## Joint Classification
 CNN + Node2Vec:
 ```sh
-python -m twitter_sentiment.mixed.cnn_node2vec data/output/amazonia-pt-tagged.jsonline.xz -te models/amazonia-pt-w2v.emb -ue models/amazonia-graph-embedding.emb -mo models/amazonia-pt-cnn_node2vec.h5
+python -m twitter_sentiment.mixed.cnn_node2vec data/output/all_deduplicated-pt-tagged.jsonline.xz -te models/w2v-pt.emb -ue models/graph-n2v.emb -mo models/cnn_n2v-pt.h5
 ```
