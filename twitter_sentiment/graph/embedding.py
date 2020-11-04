@@ -80,7 +80,7 @@ def node2vec(edgelist_filepath: str, implementation: str = "snap", prune_scc: bo
         "p": 1,
         "q": 1,
         "context_size": 10,
-        "epochs": 1,
+        "epochs": 3,
         "directed": False,
         "weighted": False,
     }

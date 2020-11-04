@@ -1,8 +1,10 @@
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 from gensim.models import Word2Vec
+import tensorflow as tf
 from tensorflow.keras import models, layers, losses, regularizers, callbacks
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
+from twitter_sentiment.text import max_tokens_len
 from twitter_sentiment.text.embedding import load_w2v_weight_and_X
 from twitter_sentiment.preprocessors.distant_supervision import extract_tweets_tokenized_text_and_Y
 
@@ -12,25 +14,26 @@ def train_model(filepath: str, embedding_path: str, model_output: str):
 
     tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
 
-    seq_len = 40 # FIXME
+    seq_len = max_tokens_len
     w2v = Word2Vec.load(embedding_path)
-    emb_weights, X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
+    text_emb_weights, X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
 
-    model = models.Sequential()
-    model.add(layers.Embedding(emb_weights.shape[0], emb_weights.shape[1],
-                               input_length=seq_len,
-                               weights=[emb_weights],
-                               trainable=False))
+    text_input = tf.keras.Input(shape=(seq_len,), name="text_input")
 
-    model.add(layers.Bidirectional(layers.LSTM(64, return_sequences=True)))
-    model.add(layers.Bidirectional(layers.LSTM(64)))
+    text_emb_layer = layers.Embedding(text_emb_weights.shape[0], text_emb_weights.shape[1],
+                                      input_length=seq_len, weights=[text_emb_weights],
+                                      trainable=False, name="text_embbedding")(text_input)
 
-    model.add(layers.Dropout(.5))
+    lstm_layer_1 = layers.Bidirectional(layers.LSTM(128, return_sequences=True), name="lstm_layer_1")(text_emb_layer)
+    lstm_layer_2 = layers.Bidirectional(layers.LSTM(128), name="lstm_layer_2")(lstm_layer_1)
 
-    model.add(layers.Dense(1,
-                           activation="sigmoid",
-                           kernel_regularizer=regularizers.l2(10**-3),
-                           bias_regularizer=regularizers.l2(10**-3)))
+    dropout = layers.Dropout(.5)(lstm_layer_2)
+    predictions = layers.Dense(1, activation="sigmoid",
+                               kernel_regularizer=regularizers.l2(10**-4),
+                               bias_regularizer=regularizers.l2(10**-4),
+                               name="prediction")(dropout)
+
+    model = tf.keras.Model(text_input, predictions)
     model.compile(optimizer='adam',
                   loss=losses.BinaryCrossentropy(from_logits=True),
                   metrics=['accuracy'])

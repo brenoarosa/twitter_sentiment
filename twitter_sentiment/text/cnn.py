@@ -1,9 +1,11 @@
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 from gensim.models import Word2Vec
-from tensorflow.keras import models, layers, losses, regularizers, callbacks
+import tensorflow as tf
+from tensorflow.keras import layers, losses, regularizers, callbacks
 from twitter_sentiment.preprocessors.utils import read_jsonlines_lzma
-from twitter_sentiment.text.embedding import W2VLossHistory, load_w2v_weight_and_X
+from twitter_sentiment.text import max_tokens_len
+from twitter_sentiment.text.embedding import load_w2v_weight_and_X
 from twitter_sentiment.preprocessors.distant_supervision import extract_tweets_tokenized_text_and_Y
 
 
@@ -12,29 +14,45 @@ def train_model(filepath: str, embedding_path: str, model_output: str):
 
     tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
 
-    seq_len = 40 # FIXME
+    seq_len = max_tokens_len
     w2v = Word2Vec.load(embedding_path)
-    emb_weights, X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
+    text_emb_weights, X = load_w2v_weight_and_X(w2v, tokenized_texts, seq_len=seq_len)
 
-    model = models.Sequential()
-    model.add(layers.Embedding(emb_weights.shape[0], emb_weights.shape[1],
-                               input_length=seq_len,
-                               weights=[emb_weights],
-                               trainable=False))
+    text_input = tf.keras.Input(shape=(seq_len,), name="text_input")
 
-    model.add(layers.Conv1D(filters=200, kernel_size=3, padding="same",
-                            kernel_regularizer=regularizers.l2(10**-3),
-                            bias_regularizer=regularizers.l2(10**-3)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Activation("relu"))
-    model.add(layers.MaxPooling1D(3))
-    model.add(layers.Dropout(.5))
+    text_emb_layer = layers.Embedding(text_emb_weights.shape[0], text_emb_weights.shape[1],
+                                      input_length=seq_len, weights=[text_emb_weights],
+                                      trainable=False, name="text_embbedding")(text_input)
 
-    model.add(layers.Flatten())
-    model.add(layers.Dense(1,
-                           activation="sigmoid",
-                           kernel_regularizer=regularizers.l2(10**-3),
-                           bias_regularizer=regularizers.l2(10**-3)))
+    text_conv_layer_3 = layers.Conv1D(filters=100, kernel_size=3, padding="same",
+                                      kernel_regularizer=regularizers.l2(10**-4),
+                                      bias_regularizer=regularizers.l2(10**-4),
+                                      name="text_conv_3")(text_emb_layer)
+    text_conv_layer_4 = layers.Conv1D(filters=100, kernel_size=4, padding="same",
+                                      kernel_regularizer=regularizers.l2(10**-4),
+                                      bias_regularizer=regularizers.l2(10**-4),
+                                      name="text_conv_4")(text_emb_layer)
+    text_conv_layer_5 = layers.Conv1D(filters=100, kernel_size=5, padding="same",
+                                      kernel_regularizer=regularizers.l2(10**-4),
+                                      bias_regularizer=regularizers.l2(10**-4),
+                                      name="text_conv_5")(text_emb_layer)
+
+    text_conv_layer = layers.Concatenate()([text_conv_layer_3, text_conv_layer_4, text_conv_layer_5])
+
+
+    text_conv_layer = layers.BatchNormalization()(text_conv_layer)
+    text_conv_layer = layers.Activation("relu")(text_conv_layer)
+    text_conv_layer = layers.MaxPooling1D(3)(text_conv_layer)
+    text_conv_layer = layers.Dropout(.5)(text_conv_layer)
+
+    text_flat_emb_layer = layers.Flatten(name="text_emb_flat")(text_conv_layer)
+
+    predictions = layers.Dense(1, activation="sigmoid",
+                               kernel_regularizer=regularizers.l2(10**-4),
+                               bias_regularizer=regularizers.l2(10**-4),
+                               name="prediction")(text_flat_emb_layer)
+
+    model = tf.keras.Model(text_input, predictions)
     model.compile(optimizer='adam',
                   loss=losses.BinaryCrossentropy(from_logits=True),
                   metrics=['accuracy'])

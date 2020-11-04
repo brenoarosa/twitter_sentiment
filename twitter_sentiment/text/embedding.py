@@ -10,17 +10,6 @@ from twitter_sentiment.preprocessors.tokenizer import tokenize
 
 logger = get_logger()
 
-class W2VLossHistory(CallbackAny2Vec):
-    def __init__(self):
-        self.loss_history = []
-        self.epoch = 0
-
-    def on_epoch_end(self, model):
-        loss = model.get_latest_training_loss()
-        self.loss_history.append(loss)
-        self.epoch += 1
-        logger.info('Loss after {} epoch: {}'.format(self.epoch, loss))
-
 def train_w2v(filepath: str, output_path: str, tokenizer: Callable = tokenize, **kwargs):
 
     model_parameters = {
@@ -39,12 +28,11 @@ def train_w2v(filepath: str, output_path: str, tokenizer: Callable = tokenize, *
     tweets_tokens = [t["tokenized_treated_text"] for t in tweets] # generator to list
 
     workers = kwargs.pop('workers', multiprocessing.cpu_count())
-    loss_history = W2VLossHistory()
 
     # FIXME compute loss seams to not work
     model = Word2Vec(size=model_parameters["size"], window=model_parameters["window"],
                      min_count=model_parameters["min_count"], max_vocab_size=model_parameters["max_vocab_size"],
-                     compute_loss=True, callbacks=[loss_history], workers=workers)
+                     compute_loss=True, workers=workers)
 
     logger.info("building vocab...")
     model.build_vocab(tweets_tokens)
