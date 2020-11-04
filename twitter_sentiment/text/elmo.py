@@ -45,18 +45,19 @@ class TweetDataGenerator(tf.keras.utils.Sequence):
         batch_tokenized_texts = [self.tokenized_texts[i] for i in indexes]
         batch_Y = np.array([self.Y[i] for i in indexes])
 
-        # TODO: precisa forcar o tamanho pra um valor maximo pro shape ficar igual https://pytorch.org/docs/stable/nn.functional.html#torch.nn.functional.pad
-        # cuidado que esse pad e 2d, outra opcao iniciar outro tensor zerado de tamanho fixo
         pt_tensor, _ = self.elmo_embedder.batch_to_embeddings(batch_tokenized_texts)
         batch_size, elmo_outputs, seq_len, emb_dim = pt_tensor.shape
-        # concatenate all emb_dimensions / maybe use only top layer (emb[-1]) https://github.com/allenai/allennlp/blob/v0.9.0/allennlp/commands/elmo.py#L380
-        pt_tensor = pt_tensor.permute(0, 2, 1, 3).reshape(batch_size, seq_len, -1)
-        batch_X = pt_tensor.numpy()
 
+        # if choose to use all layers: concatenate all emb_dimensions
+        # pt_tensor = pt_tensor.permute(0, 2, 1, 3).reshape(batch_size, seq_len, -1)
+
+        pt_tensor = pt_tensor[:, -1, :, :]
+
+        batch_X = pt_tensor.numpy()
         seq_len = min(seq_len, MAX_LEN)
 
-        fixed_size_batch_X = np.zeros((batch_size, MAX_LEN, elmo_outputs*emb_dim))
-        fixed_size_batch_X[0:batch_size, 0:seq_len, 0:elmo_outputs*emb_dim] = batch_X[0:batch_size, 0:seq_len, 0:elmo_outputs*emb_dim]
+        fixed_size_batch_X = np.zeros((batch_size, MAX_LEN, emb_dim))
+        fixed_size_batch_X[0:batch_size, 0:seq_len, 0:emb_dim] = batch_X[0:batch_size, 0:seq_len, 0:emb_dim]
 
         return fixed_size_batch_X, batch_Y
 
@@ -70,6 +71,9 @@ def train_model(filepath: str):
     tweets = read_jsonlines_lzma(filepath)
 
     tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
+    #tweets = tweets[0:10000]
+    #tokenized_texts = tokenized_texts[0:10000]
+    #Y = Y[0:10000]
     tokenized_texts = pad_elmo_tokens(tokenized_texts)
 
     options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/contributed/pt/wikipedia/options.json"
@@ -82,11 +86,11 @@ def train_model(filepath: str):
     test_data_gen = TweetDataGenerator(tokenized_texts_test, y_test, embedder, batch_size=32, shuffle=True)
 
     model = models.Sequential()
-    model.add(layers.Input(shape=(MAX_LEN, 3072)))
+    model.add(layers.Input(shape=(MAX_LEN, 1024)))
 
     model.add(layers.Conv1D(filters=200, kernel_size=3, padding="same",
-                            kernel_regularizer=regularizers.l2(10**-3),
-                            bias_regularizer=regularizers.l2(10**-3)))
+                            kernel_regularizer=regularizers.l2(10**-4),
+                            bias_regularizer=regularizers.l2(10**-4)))
     model.add(layers.BatchNormalization())
     model.add(layers.Activation("relu"))
     model.add(layers.MaxPooling1D(3))
@@ -95,8 +99,8 @@ def train_model(filepath: str):
     model.add(layers.Flatten())
     model.add(layers.Dense(1,
                            activation="sigmoid",
-                           kernel_regularizer=regularizers.l2(10**-3),
-                           bias_regularizer=regularizers.l2(10**-3)))
+                           kernel_regularizer=regularizers.l2(10**-4),
+                           bias_regularizer=regularizers.l2(10**-4)))
     model.compile(optimizer='adam',
                   loss=losses.BinaryCrossentropy(from_logits=True),
                   metrics=['accuracy'])
@@ -114,17 +118,15 @@ def train_model(filepath: str):
               class_weight=class_weights,
               epochs=epochs,
               verbose=1,
-              callbacks=[callbacks.EarlyStopping(monitor="loss", min_delta=.0005, patience=3),
-                         callbacks.ModelCheckpoint("/tmp/checkpoint/", monitor='val_loss', verbose=1,
-                                                   save_best_only=True, save_weights_only=False),
-                         callbacks.TensorBoard(log_dir=log_dir, write_graph=False)])
+              workers=4,
+              max_queue_size=30,
+              use_multiprocessing=True)
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Path to dataset", type=str)
-    #parser.add_argument("-e", "--embedding", help="Path to saved embedding file", type=str, required=True)
-    #parser.add_argument("-mo", "--model_output", help="Path to model output file", type=str, required=True)
+    parser.add_argument("-mo", "--model_output", help="Path to model output file", type=str, required=True)
     args = parser.parse_args()
     train_model(args.input)

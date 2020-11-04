@@ -44,6 +44,11 @@ Train CNN + W2V classifier:
 python -m twitter_sentiment.text.cnn data/output/all_deduplicated-pt-tagged.jsonline.xz -e models/w2v-pt.emb -mo models/cnn-pt.h5
 ```
 
+Train ELMo:
+```sh
+python -m twitter_sentiment.text.elmo data/output/all_deduplicated-pt-tagged.jsonline.xz -mo models/elmo-cnn-pt.h5
+```
+
 ## Graph Representation
 Get graph embeddings:
 ```sh
