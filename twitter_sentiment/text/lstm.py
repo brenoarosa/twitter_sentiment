@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 from gensim.models import Word2Vec
@@ -8,6 +9,7 @@ from twitter_sentiment.text import max_tokens_len
 from twitter_sentiment.text.embedding import load_w2v_weight_and_X
 from twitter_sentiment.preprocessors.distant_supervision import extract_tweets_tokenized_text_and_Y
 
+LOG_DIR = f"logs/tensorboard/lstm/{datetime.now().isoformat()}"
 
 def train_model(filepath: str, embedding_path: str, model_output: str):
     tweets = read_jsonlines_lzma(filepath)
@@ -45,15 +47,13 @@ def train_model(filepath: str, embedding_path: str, model_output: str):
     epochs = 400
     batch_size = 2048
 
-    log_dir = "/tmp/tensorboard/"
-
     model.fit(x=X, y=Y,
               batch_size=batch_size, epochs=epochs, verbose=1,
               validation_split=0.2, shuffle=True, class_weight=class_weights,
               callbacks=[callbacks.EarlyStopping(monitor="loss", min_delta=.0005, patience=3),
                          callbacks.ModelCheckpoint(model_output, monitor='val_loss', verbose=1,
                                                    save_best_only=True, save_weights_only=False),
-                         callbacks.TensorBoard(log_dir=log_dir, write_graph=False)])
+                         callbacks.TensorBoard(log_dir=LOG_DIR, write_graph=False)])
 
 
 if __name__ == "__main__":
