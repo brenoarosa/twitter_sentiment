@@ -26,12 +26,14 @@ class TweetDataGenerator(tf.keras.utils.Sequence):
 
     def __init__(self, tokenized_texts, Y, elmo_embedder, batch_size=32, shuffle=True):
         self.tokenized_texts = tokenized_texts
-        self.Y = Y
+        self.Y = np.array(Y)
 
         self.elmo_embedder = elmo_embedder
 
         self.batch_size = batch_size
         self.shuffle = shuffle
+
+        self.fixed_size_batch_X = np.zeros((batch_size, elmo_tokens_len, 1024))
 
         self.indexes = None
         self.on_epoch_end()
@@ -44,7 +46,7 @@ class TweetDataGenerator(tf.keras.utils.Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
         batch_tokenized_texts = [self.tokenized_texts[i] for i in indexes]
-        batch_Y = np.array([self.Y[i] for i in indexes])
+        batch_Y = self.Y[indexes]
 
         pt_tensor, _ = self.elmo_embedder.batch_to_embeddings(batch_tokenized_texts)
         batch_size, elmo_outputs, seq_len, emb_dim = pt_tensor.shape
@@ -52,15 +54,13 @@ class TweetDataGenerator(tf.keras.utils.Sequence):
         # if choose to use all layers: concatenate all emb_dimensions
         # pt_tensor = pt_tensor.permute(0, 2, 1, 3).reshape(batch_size, seq_len, -1)
 
-        pt_tensor = pt_tensor[:, -1, :, :]
-
-        batch_X = pt_tensor.numpy()
+        batch_X = pt_tensor[:, -1, :, :].numpy()
         seq_len = min(seq_len, elmo_tokens_len)
 
-        fixed_size_batch_X = np.zeros((batch_size, elmo_tokens_len, emb_dim))
-        fixed_size_batch_X[0:batch_size, 0:seq_len, 0:emb_dim] = batch_X[0:batch_size, 0:seq_len, 0:emb_dim]
+        self.fixed_size_batch_X[:, :, :] = 0
+        self.fixed_size_batch_X[0:batch_size, 0:seq_len, 0:emb_dim] = batch_X[0:batch_size, 0:seq_len, 0:emb_dim]
 
-        return fixed_size_batch_X, batch_Y
+        return self.fixed_size_batch_X, batch_Y
 
     def on_epoch_end(self):
         self.indexes = np.arange(len(self.Y))
@@ -72,7 +72,7 @@ def train_model(filepath: str, model_output: str):
     tweets = read_jsonlines_lzma(filepath)
 
     tweets, tokenized_texts, Y = extract_tweets_tokenized_text_and_Y(tweets)
-    #tweets = tweets[0:10000]; tokenized_texts = tokenized_texts[0:10000]; Y = Y[0:10000]
+    tweets = tweets[0:100000]; tokenized_texts = tokenized_texts[0:100000]; Y = Y[0:100000]
     tokenized_texts = pad_elmo_tokens(tokenized_texts)
 
     options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/contributed/pt/wikipedia/options.json"
@@ -81,8 +81,8 @@ def train_model(filepath: str, model_output: str):
 
     tokenized_texts_train, tokenized_texts_test, y_train, y_test = train_test_split(tokenized_texts, Y, test_size=0.20, random_state=42)
 
-    train_data_gen = TweetDataGenerator(tokenized_texts_train, y_train, embedder, batch_size=64, shuffle=True)
-    test_data_gen = TweetDataGenerator(tokenized_texts_test, y_test, embedder, batch_size=64, shuffle=True)
+    train_data_gen = TweetDataGenerator(tokenized_texts_train, y_train, embedder, shuffle=True)
+    test_data_gen = TweetDataGenerator(tokenized_texts_test, y_test, embedder, shuffle=True)
 
     text_input = tf.keras.Input(shape=(elmo_tokens_len, 1024), name="elmo_embeddings")
 
@@ -128,13 +128,15 @@ def train_model(filepath: str, model_output: str):
               class_weight=class_weights,
               epochs=epochs,
               verbose=1,
-              workers=4,
-              max_queue_size=20,
-              use_multiprocessing=True,
+              #workers=4,
+              #max_queue_size=20,
+              #use_multiprocessing=True,
               callbacks=[callbacks.EarlyStopping(monitor="loss", min_delta=.0005, patience=3),
                          callbacks.ModelCheckpoint(model_output, monitor='val_loss', verbose=1,
                                                    save_best_only=True, save_weights_only=False),
-                         callbacks.TensorBoard(log_dir=LOG_DIR, write_graph=False)])
+                         #callbacks.TensorBoard(log_dir=LOG_DIR, write_graph=False)
+                        ]
+            )
 
 
 if __name__ == "__main__":

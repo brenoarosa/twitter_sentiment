@@ -4,15 +4,13 @@ Grandes blocos de codigo faltante:
     - ~~classificador CNN~~
     - ~~representacao LSTM (Cho et al)~~
     - classificador ELMO (ver AllenNLP, tem portugues pre treinado no site)
-    - classificador BERT (Tranformers?)
-    - classificador ELECTRA (hugging face tb)
-- Juntar embedding texto + embedding grafo no classificador
-    - usar eles pre-treinados individualmente e fazer fine-tunning?
 - Adicionar outros algoritmos de representacao de grafos:
     - ~~LLE~~
-    - automapas laplacianos
-    - HOPE
-    - deepwalk (parecido com node2vec)
     - GCN (usar o grau como feature?)
     - Learning Structural Node Embeddings via Diffusion Wavelets (tem na lib stellar, parecido com node2vec, precisaria escrever no texto)
-    - investigar Deep Graph Infomax
+    - ~~investigar Deep Graph Infomax~~
+- Juntar embedding texto + embedding grafo no classificador
+    - usar eles pre-treinados individualmente e fazer fine-tunning?
+
+- Criar um data/selected_users.csv com os usuarios ordenados por prioridade na selecao de grafo
+- tambem ja definir um data/test_users.csv entre os outros arquivos de supervisao distante separados por teste/validacao dos algoritmos com grafos

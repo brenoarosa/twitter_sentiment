@@ -49,13 +49,22 @@ def lle(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedd
         "dimensions": 128,
     }
 
-    n_vertices = g.num_vertices()
-    indexes = np.arange(n_vertices)
+    if g.num_vertices() > MAX_VERTICES:
+        logger.warning(f"Too many vertices, selecting [{MAX_VERTICES}] of them.")
 
-    if n_vertices > MAX_VERTICES:
-        logger.warning(f"Too many vertices, sampling [{MAX_VERTICES}] of them.")
+        graph_users = pd.read_csv("data/output/graph_users_ordered.csv", dtype={"user": str}) # FIXME: hardcoded
+        graph_users = graph_users.loc[graph_users.in_scc == True] # filter scc
+        graph_users = graph_users[0:MAX_VERTICES] # filter with most tweets
+        graph_users = set(graph_users.user.to_list())
 
-        indexes = np.random.choice(n_vertices, MAX_VERTICES, replace=False)
+        indexes = []
+        for i, user_id in enumerate(g.vp["user_ids"]):
+            if user_id in graph_users:
+                indexes.append(i)
+
+        logger.warning(f"Filled [{len(indexes)}] vertices.")
+
+        indexes = np.array(indexes)
         indexes.sort()
         A = A[indexes, :][:, indexes]
 
@@ -126,21 +135,24 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     logger.info("Writing node2vec edgelist to [%s]", edge_list_filepath)
     logger.info(f"Graph with [{g.num_edges()}] nodes and [{g.num_vertices()}] edges.")
 
-    MAX_EDGES = 1000000
-    sample_output = False
+    MAX_VERTICES = 16000
 
-    if g.num_edges() > MAX_EDGES:
-        logger.warning(f"Too many edges, sampling [{MAX_EDGES}] of them.")
-        sample_output = True
-        sample_rate = MAX_EDGES / g.num_edges()
-        samples = np.random.rand(g.num_edges())
+    graph_users = pd.read_csv("data/output/graph_users_ordered.csv", dtype={"user": str}) # FIXME: hardcoded
+    graph_users = graph_users.loc[graph_users.in_scc == True] # filter scc
+    graph_users = graph_users[0:MAX_VERTICES] # filter with most tweets
+    graph_users = set(graph_users.user.to_list())
 
+    c = 0
     with os.fdopen(edge_list_fd, 'w') as edgelist:
         for i, edge in enumerate(g.edges()):
-            if sample_output and (samples[i] > sample_rate):
-                continue
+            source_id = g.vp["user_ids"][int(edge.source())]
+            target_id = g.vp["user_ids"][int(edge.target())]
 
-            edgelist.write(f"{int(edge.source())} {int(edge.target())}\n")
+            if (source_id in graph_users) and (target_id in graph_users):
+                edgelist.write(f"{int(edge.source())} {int(edge.target())}\n")
+                c += 1
+
+    logger.info(f"Total edges written {c}")
 
     _, embedding_filepath = tempfile.mkstemp()
 
@@ -180,6 +192,10 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
 
     emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
     return emb
+
+
+def gcn(g: Graph, params) -> GraphEmbedding:
+    pass
 
 
 def load_graph_emb_weight_and_X(model: GraphEmbedding, tweets: Iterable[dict]) -> Tuple[np.ndarray, np.ndarray]:
