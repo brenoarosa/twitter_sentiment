@@ -6,6 +6,7 @@ from collections import namedtuple
 import joblib
 import numpy as np
 import pandas as pd
+import networkx as nx
 from graph_tool import Graph
 from graph_tool.spectral import adjacency
 from stellargraph.data import BiasedRandomWalk
@@ -14,10 +15,11 @@ from sklearn.manifold import LocallyLinearEmbedding
 from twitter_sentiment.utils import get_logger
 from twitter_sentiment.graph.utils import load_graph, load_stellar_graph
 
-
 logger = get_logger()
 
 GraphEmbedding = namedtuple('GraphEmbedding', ["idx2user", "user2idx", "weights"])
+
+ORDERED_USERS_FILEPATH = "data/output/graph_users_ordered.csv" #FIXME: hardcoded
 
 def graph_embedding(edgelist_filepath: str, algorithm: str, output_path: str, prune_scc: bool = True) -> GraphEmbedding:
 
@@ -32,6 +34,9 @@ def graph_embedding(edgelist_filepath: str, algorithm: str, output_path: str, pr
 
     elif algorithm == "lle":
         embedding = lle(edgelist_filepath, prune_scc)
+
+    elif algorithm == "gcn":
+        embedding = gcn(edgelist_filepath, prune_scc)
 
     else:
         raise ValueError("Invalid embedding algorithm")
@@ -52,7 +57,7 @@ def lle(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedd
     if g.num_vertices() > MAX_VERTICES:
         logger.warning(f"Too many vertices, selecting [{MAX_VERTICES}] of them.")
 
-        graph_users = pd.read_csv("data/output/graph_users_ordered.csv", dtype={"user": str}) # FIXME: hardcoded
+        graph_users = pd.read_csv(ORDERED_USERS_FILEPATH, dtype={"user": str})
         graph_users = graph_users.loc[graph_users.in_scc == True] # filter scc
         graph_users = graph_users[0:MAX_VERTICES] # filter with most tweets
         graph_users = set(graph_users.user.to_list())
@@ -137,7 +142,7 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
 
     MAX_VERTICES = 16000
 
-    graph_users = pd.read_csv("data/output/graph_users_ordered.csv", dtype={"user": str}) # FIXME: hardcoded
+    graph_users = pd.read_csv(ORDERED_USERS_FILEPATH, dtype={"user": str})
     graph_users = graph_users.loc[graph_users.in_scc == True] # filter scc
     graph_users = graph_users[0:MAX_VERTICES] # filter with most tweets
     graph_users = set(graph_users.user.to_list())
@@ -194,9 +199,71 @@ def node2vec_snap(g: Graph, params) -> GraphEmbedding:
     return emb
 
 
-def gcn(g: Graph, params) -> GraphEmbedding:
-    pass
+def gcn(edgelist_filepath: str, prune_scc: bool = True, **kwargs) -> GraphEmbedding:
+    from tensorflow.keras.optimizers import Adam
+    from tensorflow.keras.callbacks import EarlyStopping
+    import tensorflow as tf
+    from tensorflow.keras import Model
+    from stellargraph.mapper import (
+        CorruptedGenerator,
+        FullBatchNodeGenerator,
+        GraphSAGENodeGenerator,
+        HinSAGENodeGenerator,
+        ClusterNodeGenerator,
+    )
+    from stellargraph import StellarGraph
+    from stellargraph.layer import GCN, DeepGraphInfomax, GraphSAGE, GAT, APPNP, HinSAGE
 
+    params = {
+        "dimensions": 128,
+    }
+
+    graph_users = pd.read_csv(ORDERED_USERS_FILEPATH, dtype={"user": str})
+    graph_users = graph_users.loc[graph_users.in_scc == True] # filter scc
+    graph_users = set(graph_users.user.to_list())
+
+    df = pd.read_csv(edgelist_filepath, sep=",", dtype="str")
+    df = df.loc[df.user_id.isin(graph_users) & df.retweeted_user_id.isin(graph_users)]
+    nx_g = nx.from_pandas_edgelist(df, "user_id", "retweeted_user_id", create_using=nx.Graph)
+
+    nx_g.remove_edges_from(nx.selfloop_edges(nx_g))
+    if prune_scc:
+        nx_g = nx_g.subgraph(max(nx.connected_components(nx_g), key=len))
+
+    feat = pd.DataFrame.from_dict(dict(nx_g.degree()), orient="index", columns=["degree"])
+    feat = np.log(1 + feat.degree)
+
+    G = StellarGraph.from_networkx(nx_g, node_features=feat)
+
+    fullbatch_generator = FullBatchNodeGenerator(G, sparse=True)
+    gcn_model = GCN(layer_sizes=[params["dimensions"]], activations=["relu"], generator=fullbatch_generator)
+
+    corrupted_generator = CorruptedGenerator(fullbatch_generator)
+    gen = corrupted_generator.flow(G.nodes())
+
+    infomax = DeepGraphInfomax(gcn_model, corrupted_generator)
+    x_in, x_out = infomax.in_out_tensors()
+
+    model = Model(inputs=x_in, outputs=x_out)
+    model.compile(loss=tf.nn.sigmoid_cross_entropy_with_logits, optimizer=Adam(lr=1e-3))
+
+    epochs = 500
+    es = EarlyStopping(monitor="loss", min_delta=0, patience=20)
+    history = model.fit(gen, epochs=epochs, verbose=1, callbacks=[es])
+
+    x_emb_in, x_emb_out = gcn_model.in_out_tensors()
+
+    # for full batch models, squeeze out the batch dim (which is 1)
+    x_out = tf.squeeze(x_emb_out, axis=0)
+    emb_model = Model(inputs=x_emb_in, outputs=x_out)
+
+    weights = emb_model.predict(fullbatch_generator.flow(G.nodes()))
+
+    idx2user = {i: v for i, v in enumerate(G.nodes())}
+    user2idx = {v: k for k, v in idx2user.items()}
+
+    emb = GraphEmbedding(idx2user=idx2user, user2idx=user2idx, weights=weights)
+    return emb
 
 def load_graph_emb_weight_and_X(model: GraphEmbedding, tweets: Iterable[dict]) -> Tuple[np.ndarray, np.ndarray]:
 
