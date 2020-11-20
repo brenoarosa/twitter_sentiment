@@ -60,7 +60,7 @@ python -m twitter_sentiment.graph.embedding data/output/all-edgelist.csv -a lle 
 ```
 
 ## Joint Classification
-CNN + Node2Vec:
+Word2Vec based models (CNN + Node2Vec):
 ```sh
-python -m twitter_sentiment.mixed.cnn_node2vec data/output/all_deduplicated-pt-tagged.jsonline.xz -te models/w2v-pt.emb -ue models/graph-n2v.emb -mo models/cnn_n2v-pt.h5
+python -m twitter_sentiment.mixed.w2v_based data/output/all_deduplicated-pt-tagged.jsonline.xz -te models/w2v-pt.emb -tm models/cnn-pt.h5 -ue models/graph-n2v.emb -mo models/cnn_n2v-pt.h5
 ```

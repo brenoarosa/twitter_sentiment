@@ -6,7 +6,7 @@ Grandes blocos de codigo faltante:
     - classificador ELMO (ver AllenNLP, tem portugues pre treinado no site)
 - Adicionar outros algoritmos de representacao de grafos:
     - ~~LLE~~
-    - GCN (usar o grau como feature?)
+    - ~~GCN (usar o grau como feature?)~~
     - Learning Structural Node Embeddings via Diffusion Wavelets (tem na lib stellar, parecido com node2vec, precisaria escrever no texto)
     - ~~investigar Deep Graph Infomax~~
 - Juntar embedding texto + embedding grafo no classificador
